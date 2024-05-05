@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -8,18 +9,23 @@ namespace Mert.MovementSystem
         protected PlayerMovementStateMachine stateMachine;
 
         protected PlayerGroundedData movementData;
+        protected PlayerAirborneData airborneData;
 
         public PlayerMovementState(PlayerMovementStateMachine playerMovementStateMachine)
         {
             stateMachine = playerMovementStateMachine;
+
             movementData = stateMachine.Player.Data.GroundedData;
+            airborneData = stateMachine.Player.Data.AirborneData;
+
+            SetBaseCameraRecenteringData();
 
             InitializeData();
         }
 
         private void InitializeData()
         {
-            stateMachine.ReusableData.TimeToReachTargetRotation = movementData.BaseRotationData.TargetRotationReachTime;
+            SetBaseRotationData();
         }
 
         #region IState Methods
@@ -62,6 +68,26 @@ namespace Mert.MovementSystem
         public virtual void OnAnimationTransitionEvent()
         {
             
+        }
+
+        public virtual void OnTriggerEnter(Collider collider)
+        {
+            if (stateMachine.Player.LayerData.IsGroundLayer(collider.gameObject.layer))
+            {
+                OnContactWithGround(collider);
+
+                return;
+            }
+        }
+
+        public virtual void OnTriggerExit(Collider collider)
+        {
+            if (stateMachine.Player.LayerData.IsGroundLayer(collider.gameObject.layer))
+            {
+                OnContactWithGroundExited(collider);
+
+                return;
+            }
         }
         #endregion
 
@@ -130,14 +156,53 @@ namespace Mert.MovementSystem
         #endregion
 
         #region Reusable Methods
+        protected virtual void AddInputActionCallbacks()
+        {
+            stateMachine.Player.Input.PlayerActions.WalkToggle.started += OnWalkToggleStarted;
+
+            stateMachine.Player.Input.PlayerActions.Look.started += OnMouseMovementStarted;
+
+            stateMachine.Player.Input.PlayerActions.Movement.performed += OnMovementPerformed;
+            stateMachine.Player.Input.PlayerActions.Movement.canceled += OnMovementCanceled;
+        }
+
+        protected virtual void RemoveInputActionCallbacks()
+        {
+            stateMachine.Player.Input.PlayerActions.WalkToggle.started -= OnWalkToggleStarted;
+
+            stateMachine.Player.Input.PlayerActions.Look.started -= OnMouseMovementStarted;
+
+            stateMachine.Player.Input.PlayerActions.Movement.performed -= OnMovementPerformed;
+            stateMachine.Player.Input.PlayerActions.Movement.canceled -= OnMovementCanceled;
+        }
+
+        protected void SetBaseCameraRecenteringData()
+        {
+            stateMachine.ReusableData.BackwardsCameraRecenteringData = movementData.BackwardsCameraRecenteringData;
+            stateMachine.ReusableData.SidewaysCameraRecenteringData = movementData.SidewaysCameraRecenteringData;
+        }
+
+        protected void SetBaseRotationData()
+        {
+            stateMachine.ReusableData.RotationData = movementData.BaseRotationData;
+            stateMachine.ReusableData.TimeToReachTargetRotation = stateMachine.ReusableData.RotationData.TargetRotationReachTime;
+        }
+
         protected Vector3 GetMovementInputDirection()
         {
             return new Vector3(stateMachine.ReusableData.MovementInput.x, 0f, stateMachine.ReusableData.MovementInput.y);
         }
 
-        protected float GetMovementSpeed()
+        protected float GetMovementSpeed(bool shouldConsiderSlopes = true)
         {
-            return movementData.BaseSpeed * stateMachine.ReusableData.MovementSpeedModifier * stateMachine.ReusableData.MovementOnSlopesSpeedModifier;
+            float movementSpeed = movementData.BaseSpeed * stateMachine.ReusableData.MovementSpeedModifier;
+
+            if (shouldConsiderSlopes)
+            {
+                movementSpeed *= stateMachine.ReusableData.MovementOnSlopesSpeedModifier;
+            }
+
+            return movementSpeed;
         }
 
         protected Vector3 GetPlayerHorizontalVelocity()
@@ -194,14 +259,11 @@ namespace Mert.MovementSystem
             stateMachine.Player.Rigidbody.velocity = Vector3.zero;
         }
 
-        protected virtual void AddInputActionCallbacks()
+        protected void ResetVerticalVelocity()
         {
-            stateMachine.Player.Input.PlayerActions.WalkToggle.started += OnWalkToggleStarted;
-        }
+            Vector3 playerHorizontalVelocity = GetPlayerHorizontalVelocity();
 
-        protected virtual void RemoveInputActionCallbacks()
-        {
-            stateMachine.Player.Input.PlayerActions.WalkToggle.started -= OnWalkToggleStarted;
+            stateMachine.Player.Rigidbody.velocity = playerHorizontalVelocity;
         }
 
         protected void DecelerateHorizontally()
@@ -209,6 +271,13 @@ namespace Mert.MovementSystem
             Vector3 playerHorizontalVelocity = GetPlayerHorizontalVelocity();
 
             stateMachine.Player.Rigidbody.AddForce(-playerHorizontalVelocity * stateMachine.ReusableData.MovementDecelerationForce, ForceMode.Acceleration);
+        }
+
+        protected void DecelerateVertically()
+        {
+            Vector3 playerVerticallyVelocity = GetPlayerVerticalVelocity();
+
+            stateMachine.Player.Rigidbody.AddForce(-playerVerticallyVelocity * stateMachine.ReusableData.MovementDecelerationForce, ForceMode.Acceleration);
         }
 
         protected bool IsMovingHorizontally(float minMagnitude = 0.1f)
@@ -219,12 +288,105 @@ namespace Mert.MovementSystem
 
             return playerHorizontalMovement.magnitude > minMagnitude;
         }
+
+        protected bool IsMovingUp(float minVelocity = 0.1f)
+        {
+            return GetPlayerVerticalVelocity().y > minVelocity;
+        }
+
+        protected bool IsMovingDown(float minVelocity = 0.1f)
+        {
+            return GetPlayerVerticalVelocity().y < -minVelocity;
+        }
+
+        protected virtual void OnContactWithGround(Collider collider)
+        {
+
+        }
+
+        protected virtual void OnContactWithGroundExited(Collider collider)
+        {
+
+        }
+
+        protected void UpdateCameraRecenteringState(Vector2 movementInput)
+        {
+            if (movementInput == Vector2.zero) return;
+
+            if (movementInput == Vector2.up)
+            {
+                DisableCameraRecentering();
+                return;
+            }
+
+            float cameraVerticalAngle = stateMachine.Player.MainCameraTransform.eulerAngles.x;
+
+            if (cameraVerticalAngle >= 270f)
+            {
+                cameraVerticalAngle -= 360f;
+            }
+
+            cameraVerticalAngle = Mathf.Abs(cameraVerticalAngle);
+
+            if (movementInput == Vector2.down)
+            {
+                SetCameraRecenteringState(cameraVerticalAngle, stateMachine.ReusableData.BackwardsCameraRecenteringData);
+                return;
+            }
+
+            SetCameraRecenteringState(cameraVerticalAngle, stateMachine.ReusableData.SidewaysCameraRecenteringData);
+        }
+
+        protected void EnableCameraRecentering(float waitTime = -1, float recenteringTime = -1)
+        {
+            float movementSpeed = GetMovementSpeed();
+
+            if (movementSpeed == 0f)
+            {
+                movementSpeed = movementData.BaseSpeed;
+            }
+
+            stateMachine.Player.CameraUtility.EnableRecentering(waitTime, recenteringTime, movementData.BaseSpeed, movementSpeed);
+        }
+
+        protected void DisableCameraRecentering()
+        {
+            stateMachine.Player.CameraUtility.DisableRecentering();
+        }
+
+        protected void SetCameraRecenteringState(float cameraVerticalAngle, List<PlayerCameraRecenteringData> cameraRecenteringData)
+        {
+            foreach (PlayerCameraRecenteringData recenteringData in cameraRecenteringData)
+            {
+                if (!recenteringData.IsWithinRange(cameraVerticalAngle)) continue;
+
+                EnableCameraRecentering(recenteringData.WaitTime, recenteringData.RecenteringTime);
+                return;
+            }
+
+            DisableCameraRecentering();
+        }
         #endregion
 
         #region Input Methods
         protected virtual void OnWalkToggleStarted(InputAction.CallbackContext context)
         {
             stateMachine.ReusableData.ShouldWalk = !stateMachine.ReusableData.ShouldWalk;
+        }
+
+        private void OnMouseMovementStarted(InputAction.CallbackContext context)
+        {
+            UpdateCameraRecenteringState(stateMachine.ReusableData.MovementInput);
+        }
+
+        private void OnMovementPerformed(InputAction.CallbackContext context)
+        {
+            UpdateCameraRecenteringState(context.ReadValue<Vector2>());
+        }
+
+        protected virtual void OnMovementCanceled(InputAction.CallbackContext context)
+        {
+            DisableCameraRecentering();
         }
         #endregion
     }

@@ -12,6 +12,8 @@ namespace Mert.MovementSystem
             base.Enter();
 
             stateMachine.ReusableData.MovementDecelerationForce = movementData.StopData.HardDecelerationForce;
+
+            stateMachine.ReusableData.CurrentJumpForce = airborneData.JumpData.StrongForce;
         }
         #endregion
 

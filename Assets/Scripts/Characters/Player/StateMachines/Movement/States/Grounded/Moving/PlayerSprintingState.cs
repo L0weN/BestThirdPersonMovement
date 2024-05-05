@@ -10,6 +10,7 @@ namespace Mert.MovementSystem
         private float startTime;
 
         private bool keepSprinting;
+        private bool shouldResetSprintState;
 
         public PlayerSprintingState(PlayerMovementStateMachine playerMovementStateMachine) : base(playerMovementStateMachine)
         {
@@ -19,9 +20,13 @@ namespace Mert.MovementSystem
         #region IState Methods
         public override void Enter()
         {
+            stateMachine.ReusableData.MovementSpeedModifier = sprintData.SpeedModifier;
+
             base.Enter();
 
-            stateMachine.ReusableData.MovementSpeedModifier = sprintData.SpeedModifier;
+            stateMachine.ReusableData.CurrentJumpForce = airborneData.JumpData.StrongForce;
+
+            shouldResetSprintState = true;
 
             startTime = Time.time;
         }
@@ -30,7 +35,12 @@ namespace Mert.MovementSystem
         {
             base.Exit();
 
-            keepSprinting = false;
+            if (shouldResetSprintState)
+            {
+                keepSprinting = false;
+
+                stateMachine.ReusableData.ShouldSprint = false;
+            }
         }
 
         public override void Update()
@@ -73,17 +83,35 @@ namespace Mert.MovementSystem
 
             stateMachine.Player.Input.PlayerActions.Sprint.performed -= OnSprintPerformed;
         }
+
+        protected override void OnFall()
+        {
+            shouldResetSprintState = false;
+
+            base.OnFall();
+        }
         #endregion
 
         #region Input Methods
         protected override void OnMovementCanceled(InputAction.CallbackContext context)
         {
             stateMachine.ChangeState(stateMachine.HardStoppingState);
+
+            base.OnMovementCanceled(context);
+        }
+
+        protected override void OnJumpStarted(InputAction.CallbackContext context)
+        {
+            shouldResetSprintState = false;
+
+            base.OnJumpStarted(context);
         }
 
         private void OnSprintPerformed(InputAction.CallbackContext context)
         {
             keepSprinting = true;
+
+            stateMachine.ReusableData.ShouldSprint = true;
         }
         #endregion
     }

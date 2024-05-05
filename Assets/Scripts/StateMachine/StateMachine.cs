@@ -1,3 +1,5 @@
+using UnityEngine;
+
 namespace Mert.MovementSystem
 {
     public abstract class StateMachine
@@ -41,6 +43,16 @@ namespace Mert.MovementSystem
         public void OnAnimationTransitionEvent()
         {
             currentState?.OnAnimationTransitionEvent();
+        }
+
+        public void OnTriggerEnter(Collider collider)
+        {
+            currentState?.OnTriggerEnter(collider);
+        }
+
+        public void OnTriggerExit(Collider collider)
+        {
+            currentState?.OnTriggerExit(collider);
         }
     }
 }

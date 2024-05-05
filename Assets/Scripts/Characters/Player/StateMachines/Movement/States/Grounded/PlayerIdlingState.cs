@@ -4,16 +4,22 @@ namespace Mert.MovementSystem
 {
     public class PlayerIdlingState : PlayerGroundedState
     {
+        private PlayerIdleData idleData;
         public PlayerIdlingState(PlayerMovementStateMachine playerMovementStateMachine) : base(playerMovementStateMachine)
         {
+            idleData = movementData.IdleData;
         }
 
         #region IState Methods
         public override void Enter()
         {
+            stateMachine.ReusableData.MovementSpeedModifier = 0f;
+
+            stateMachine.ReusableData.BackwardsCameraRecenteringData = idleData.BackwardsCameraRecenteringData;
+
             base.Enter();
 
-            stateMachine.ReusableData.MovementSpeedModifier = 0f;
+            stateMachine.ReusableData.CurrentJumpForce = airborneData.JumpData.StationaryForce;
 
             ResetVelocity();
         }
@@ -25,6 +31,15 @@ namespace Mert.MovementSystem
             if (stateMachine.ReusableData.MovementInput == Vector2.zero) return;
 
             OnMove();
+        }
+
+        public override void PhysicsUpdate()
+        {
+            base.PhysicsUpdate();
+
+            if (!IsMovingHorizontally()) return;
+
+            ResetVelocity();
         }
         #endregion
     }

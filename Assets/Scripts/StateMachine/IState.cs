@@ -1,3 +1,5 @@
+using UnityEngine;
+
 namespace Mert.MovementSystem
 {
     public interface IState
@@ -10,5 +12,7 @@ namespace Mert.MovementSystem
         public void OnAnimationEnterEvent();
         public void OnAnimationExitEvent();
         public void OnAnimationTransitionEvent();
+        public void OnTriggerEnter(Collider collider);
+        public void OnTriggerExit(Collider collider);
     }
 }

@@ -9,6 +9,7 @@ namespace Mert.MovementSystem
         private PlayerDashData dashData;
         private float startTime;
         private int consecutiveDashesUsed;
+        private bool shouldKeepRotating;
         public PlayerDashingState(PlayerMovementStateMachine playerMovementStateMachine) : base(playerMovementStateMachine)
         {
             dashData = movementData.DashData;
@@ -17,15 +18,35 @@ namespace Mert.MovementSystem
         #region IState Methods
         public override void Enter()
         {
-            base.Enter();
-
             stateMachine.ReusableData.MovementSpeedModifier = dashData.SpeedModifier;
 
-            AddForceOnTransitionFromStationaryState();
+            base.Enter();
+
+            stateMachine.ReusableData.RotationData = dashData.RotationData;
+
+            Dash();
+
+            shouldKeepRotating = stateMachine.ReusableData.MovementInput != Vector2.zero;
 
             UpdateConsecutiveDashes();
 
             startTime = Time.time;
+        }
+
+        public override void Exit()
+        {
+            base.Exit();
+
+            SetBaseRotationData();
+        }
+
+        public override void PhysicsUpdate()
+        {
+            base.PhysicsUpdate();
+
+            if (!shouldKeepRotating) return;
+
+            RotateTowardsTargetRotation();
         }
 
         public override void OnAnimationTransitionEvent()
@@ -43,15 +64,22 @@ namespace Mert.MovementSystem
         #endregion
 
         #region Main Methods
-        private void AddForceOnTransitionFromStationaryState()
+        private void Dash()
         {
-            if (stateMachine.ReusableData.MovementInput != Vector2.zero) return;
+            Vector3 dashDirection = stateMachine.Player.transform.forward;
 
-            Vector3 characterRotationDirection = stateMachine.Player.transform.forward;
+            dashDirection.y = 0f;
 
-            characterRotationDirection.y = 0f;
+            UpdateTargetRotation(dashDirection, false);
 
-            stateMachine.Player.Rigidbody.velocity = characterRotationDirection * GetMovementSpeed();
+            if (stateMachine.ReusableData.MovementInput != Vector2.zero)
+            {
+                UpdateTargetRotation(GetMovementInputDirection());
+
+                dashDirection = GetTargetRotationDirection(stateMachine.ReusableData.CurrentTargetRotation.y);
+            }
+
+            stateMachine.Player.Rigidbody.velocity = dashDirection * GetMovementSpeed(false);
         }
 
         private void UpdateConsecutiveDashes()
@@ -77,14 +105,29 @@ namespace Mert.MovementSystem
         }
         #endregion
 
-        #region Input Methods
-        protected override void OnMovementCanceled(InputAction.CallbackContext context)
+        #region Reusable Methods
+        protected override void AddInputActionCallbacks()
         {
-            
+            base.AddInputActionCallbacks();
+
+            stateMachine.Player.Input.PlayerActions.Movement.performed += OnMovementPerformed;
         }
+        protected override void RemoveInputActionCallbacks()
+        {
+            base.RemoveInputActionCallbacks();
+
+            stateMachine.Player.Input.PlayerActions.Movement.performed -= OnMovementPerformed;
+        }
+        #endregion
+
+        #region Input Methods
         protected override void OnDashStarted(InputAction.CallbackContext context)
         {
             
+        }
+        private void OnMovementPerformed(InputAction.CallbackContext context)
+        {
+            shouldKeepRotating = true;
         }
         #endregion
     }
