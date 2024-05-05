@@ -18,7 +18,16 @@ namespace Mert.MovementSystem
 
             base.Enter();
 
+            StartAnimation(stateMachine.Player.AnimationData.RollParamaterHash);
+
             stateMachine.ReusableData.ShouldSprint = false;
+        }
+
+        public override void Exit()
+        {
+            base.Exit();
+
+            StopAnimation(stateMachine.Player.AnimationData.RollParamaterHash);
         }
 
         public override void PhysicsUpdate()

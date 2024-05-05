@@ -17,9 +17,18 @@ namespace Mert.MovementSystem
         {
             base.Enter();
 
+            StartAnimation(stateMachine.Player.AnimationData.GroundedParamaterHash);
+
             UpdateShouldSprintState();
 
             UpdateCameraRecenteringState(stateMachine.ReusableData.MovementInput);
+        }
+
+        public override void Exit()
+        {
+            base.Exit();
+
+            StopAnimation(stateMachine.Player.AnimationData.GroundedParamaterHash);
         }
 
         public override void PhysicsUpdate()

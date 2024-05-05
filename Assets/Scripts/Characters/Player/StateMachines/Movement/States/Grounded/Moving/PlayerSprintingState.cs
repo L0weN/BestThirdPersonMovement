@@ -24,6 +24,8 @@ namespace Mert.MovementSystem
 
             base.Enter();
 
+            StartAnimation(stateMachine.Player.AnimationData.SprintParamaterHash);
+
             stateMachine.ReusableData.CurrentJumpForce = airborneData.JumpData.StrongForce;
 
             shouldResetSprintState = true;
@@ -34,6 +36,8 @@ namespace Mert.MovementSystem
         public override void Exit()
         {
             base.Exit();
+
+            StopAnimation(stateMachine.Player.AnimationData.SprintParamaterHash);
 
             if (shouldResetSprintState)
             {

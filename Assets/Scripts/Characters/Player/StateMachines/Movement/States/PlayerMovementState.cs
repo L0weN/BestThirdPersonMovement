@@ -156,6 +156,16 @@ namespace Mert.MovementSystem
         #endregion
 
         #region Reusable Methods
+        protected void StartAnimation(int animationHash)
+        {
+            stateMachine.Player.Animator.SetBool(animationHash, true);
+        }
+
+        protected void StopAnimation(int animationHash)
+        {
+            stateMachine.Player.Animator.SetBool(animationHash, false);
+        }
+
         protected virtual void AddInputActionCallbacks()
         {
             stateMachine.Player.Input.PlayerActions.WalkToggle.started += OnWalkToggleStarted;

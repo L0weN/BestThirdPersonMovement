@@ -20,9 +20,18 @@ namespace Mert.MovementSystem
         {
             base.Enter();
 
+            StartAnimation(stateMachine.Player.AnimationData.FallParamaterHash);
+
             playerPositionOnEnter = stateMachine.Player.transform.position;
 
             stateMachine.ReusableData.MovementSpeedModifier = 0f;
+        }
+
+        public override void Exit()
+        {
+            base.Exit();
+
+            StopAnimation(stateMachine.Player.AnimationData.FallParamaterHash);
         }
 
         public override void PhysicsUpdate()

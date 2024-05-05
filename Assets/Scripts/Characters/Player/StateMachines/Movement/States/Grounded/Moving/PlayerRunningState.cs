@@ -19,9 +19,18 @@ namespace Mert.MovementSystem
 
             base.Enter();
 
+            StartAnimation(stateMachine.Player.AnimationData.RunParamaterHash);
+
             stateMachine.ReusableData.CurrentJumpForce = airborneData.JumpData.MediumForce;
 
             startTime = Time.time;
+        }
+
+        public override void Exit()
+        {
+            base.Exit();
+
+            StopAnimation(stateMachine.Player.AnimationData.RunParamaterHash);
         }
 
         public override void Update()

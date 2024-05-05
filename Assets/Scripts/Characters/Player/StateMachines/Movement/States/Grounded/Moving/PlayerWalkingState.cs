@@ -20,12 +20,16 @@ namespace Mert.MovementSystem
 
             base.Enter();
 
+            StartAnimation(stateMachine.Player.AnimationData.WalkParamaterHash);
+
             stateMachine.ReusableData.CurrentJumpForce = airborneData.JumpData.WeakForce;
         }
 
         public override void Exit()
         {
             base.Exit();
+
+            StopAnimation(stateMachine.Player.AnimationData.WalkParamaterHash);
 
             SetBaseCameraRecenteringData();
         }

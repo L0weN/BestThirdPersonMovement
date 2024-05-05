@@ -15,6 +15,8 @@ namespace Mert.MovementSystem
 
             base.Enter();
 
+            StartAnimation(stateMachine.Player.AnimationData.HardLandParamaterHash);
+
             stateMachine.Player.Input.PlayerActions.Movement.Disable();
 
             ResetVelocity();
@@ -23,6 +25,8 @@ namespace Mert.MovementSystem
         public override void Exit()
         {
             base.Exit();
+
+            StopAnimation(stateMachine.Player.AnimationData.HardLandParamaterHash);
 
             stateMachine.Player.Input.PlayerActions.Movement.Enable();
         }

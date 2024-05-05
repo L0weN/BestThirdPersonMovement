@@ -22,6 +22,8 @@ namespace Mert.MovementSystem
 
             base.Enter();
 
+            StartAnimation(stateMachine.Player.AnimationData.DashParamaterHash);
+
             stateMachine.ReusableData.RotationData = dashData.RotationData;
 
             Dash();
@@ -36,6 +38,8 @@ namespace Mert.MovementSystem
         public override void Exit()
         {
             base.Exit();
+
+            StopAnimation(stateMachine.Player.AnimationData.DashParamaterHash);
 
             SetBaseRotationData();
         }
