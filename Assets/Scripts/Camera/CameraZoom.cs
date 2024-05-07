@@ -5,7 +5,7 @@ namespace Mert.MovementSystem
 {
     public class CameraZoom : MonoBehaviour
     {
-        [SerializeField][Range(0f, 10f)] private float defaultDistance = 6f;
+        [SerializeField][Range(0f, 10f)] private float defaultDistance = 3f;
         [SerializeField][Range(0f, 10f)] private float minDistance = 1f;
         [SerializeField][Range(0f, 10f)] private float maxDistance = 6f;
 

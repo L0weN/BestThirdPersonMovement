@@ -26,6 +26,8 @@ namespace Mert.MovementSystem
 
             stateMachine.ReusableData.RotationData = dashData.RotationData;
 
+            stateMachine.ReusableData.CurrentJumpForce = airborneData.JumpData.StrongForce;
+
             Dash();
 
             shouldKeepRotating = stateMachine.ReusableData.MovementInput != Vector2.zero;
